@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortgage Top-Up Impact</title>
+    <style>
+        /* CSS VARIABLES: Matching the "Premium" Tool Suite Theme */
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #22c55e;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-main: #1f2937;
+            --card-bg: rgba(255, 255, 255, 0.98);
+        }
+
+        /* LAYOUT: Centering the calculator card */
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px;
+            background: var(--bg-gradient);
+        }
+
+        /* CARD STYLING */
+        .card { 
+            background: var(--card-bg);
+            padding: 2.5rem; 
+            border-radius: 24px; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); 
+            width: 100%; max-width: 480px;
+        }
+
+        h2 { margin: 0 0 1.5rem; color: var(--text-main); text-align: center; font-weight: 800; letter-spacing: -0.5px; }
+
+        /* FORM ELEMENTS */
+        .input-group { margin-bottom: 1.2rem; }
+        
+        label { display: block; margin-bottom: 6px; font-size: 0.75rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        input, select { 
+            width: 100%; padding: 12px 16px; 
+            border: 2px solid #e5e7eb; border-radius: 12px; 
+            font-size: 1rem; color: var(--text-main);
+            transition: all 0.2s ease; outline: none; box-sizing: border-box;
+        }
+
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+
+        /* GRID LAYOUT for smaller fields */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        /* BUTTON STYLING */
+        button { 
+            width: 100%; padding: 16px; 
+            background: var(--primary); color: white; 
+            border: none; border-radius: 12px; 
+            cursor: pointer; font-size: 1rem; font-weight: 700;
+            margin-top: 10px; transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        /* RESULTS SECTION */
+        .result-section { margin-top: 25px; display: none; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .stat-card { 
+            background: #f8fafc; border: 2px dashed #cbd5e1;
+            padding: 20px; border-radius: 16px; text-align: center; margin-bottom: 20px; 
+        }
+
+        .stat-label { font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+        .stat-val { display: block; font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+        .stat-savings { color: var(--success) !important; }
+
+        /* TABLE STYLING */
+        .payment-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .payment-table th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f5f9; color: #64748b; }
+        .payment-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: var(--text-main); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Mortgage Top-Up</h2>
+        
+        <!-- Loan Basics -->
+        <div class="input-group">
+            <label>Loan Principal ($)</label>
+            <input type="number" id="principal" value="100000">
+        </div>
+
+        <div class="grid">
+            <div class="input-group">
+                <label>Interest Rate (%)</label>
+                <input type="number" id="interest" step="0.01" value="5">
+            </div>
+            <div class="input-group">
+                <label>Standard Term (Years)</label>
+                <input type="number" id="years" value="30">
+            </div>
+        </div>
+
+        <!-- Top-up settings -->
+        <div class="grid">
+            <div class="input-group">
+                <label>Extra Top-up ($)</label>
+                <input type="number" id="topupAmt" value="100">
+            </div>
+            <div class="input-group">
+                <label>Frequency</label>
+                <select id="topupFreq">
+                    <option value="52">Weekly</option>
+                    <option value="26">Fortnightly</option>
+                    <option value="12">Monthly</option>
+                    <option value="1" selected>Annually</option>
+                </select>
+            </div>
+        </div>
+
+        <button onclick="calculateImpact()">Calculate Impact</button>
+
+        <!-- Hidden until calculation runs -->
+        <div class="result-section" id="results">
+            <div class="stat-card">
+                <div class="stat-label">NEW LOAN TERM</div>
+                <span class="stat-val" id="resTerm">--</span>
+                
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                
+                <div class="stat-label">TOTAL INTEREST SAVED</div>
+                <span class="stat-val stat-savings" id="resSavings">--</span>
+            </div>
+
+            <table class="payment-table">
+                <thead>
+                    <tr><th>Frequency</th><th>New Payment</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Weekly</td><td id="wkPmt">--</td></tr>
+                    <tr><td>Fortnightly</td><td id="fnPmt">--</td></tr>
+                    <tr><td>Monthly</td><td id="moPmt">--</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        /** Core Calculation Logic */
+        function calculateImpact() {
+            // Get user inputs
+            const P = parseFloat(document.getElementById('principal').value);
+            const rAnnual = parseFloat(document.getElementById('interest').value) / 100;
+            const yearsStd = parseInt(document.getElementById('years').value);
+            const extraAmt = parseFloat(document.getElementById('topupAmt').value) || 0;
+            const extraFreq = parseInt(document.getElementById('topupFreq').value);
+
+            // 1. Calculate Standard Monthly Payment (Amortization Formula)
+            const rMonthly = rAnnual / 12;
+            const nMonths = yearsStd * 12;
+            const stdMonthly = (P * rMonthly * Math.pow(1 + rMonthly, nMonths)) / (Math.pow(1 + rMonthly, nMonths) - 1);
+            const totalIntStd = (stdMonthly * nMonths) - P;
+
+            // 2. Normalize Extra Payment to a monthly figure
+            const extraMonthlyContrib = (extraAmt * extraFreq) / 12;
+            const newTotalMonthly = stdMonthly + extraMonthlyContrib;
+
+            // 3. Simulation Loop: Decays balance month by month until paid off
+            let balance = P;
+            let totalIntNew = 0;
+            let months = 0;
+            
+            // Limit to 1200 months (100 years) to prevent infinite loops if payments don't cover interest
+            while (balance > 0 && months < 1200) {
+                months++;
+                let interestCharge = balance * rMonthly;
+                totalIntNew += interestCharge;
+                balance = balance + interestCharge - newTotalMonthly;
+                if (balance < 0) balance = 0;
+            }
+
+            // 4. Calculate Final Stats
+            const yearsNew = (months / 12).toFixed(1);
+            const savings = Math.max(0, totalIntStd - totalIntNew);
+
+            // 5. Update UI
+            document.getElementById('resTerm').innerText = yearsNew + " Years";
+            document.getElementById('resSavings').innerText = "$" + Math.round(savings).toLocaleString();
+            
+            // Format currency for the table
+            const formatCurr = (val) => "$" + val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            document.getElementById('moPmt').innerText = formatCurr(newTotalMonthly);
+            document.getElementById('fnPmt').innerText = formatCurr(newTotalMonthly * 12 / 26);
+            document.getElementById('wkPmt').innerText = formatCurr(newTotalMonthly * 12 / 52);
+
+            // Reveal results
+            document.getElementById('results').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
